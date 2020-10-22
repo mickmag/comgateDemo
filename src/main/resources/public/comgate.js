@@ -14,8 +14,4 @@ $(function() {
 //    
 //    
 //    
-//    $.get('/config', function(response) {
-//        Object.keys(fields).forEach(configureField(fields, response));
-//        Object.keys(buttons).forEach(configureButton(buttons, response));
-//    });
   }
