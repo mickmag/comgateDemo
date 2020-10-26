@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,7 +72,8 @@ public class ServerApp {
             }
         };
         // Initialize FreeMarkerEngine
-        Configuration freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_26);
+        Configuration freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_26);        
+        freeMarkerConfiguration.setEncoding(new Locale("cs", "CZ"), "UTF-8");
         freeMarkerConfiguration.setTemplateLoader(new ClassTemplateLoader(ServerApp.class, "/templates/"));
         freeMarkerEngine = new FreeMarkerEngine(freeMarkerConfiguration);
     }
