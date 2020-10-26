@@ -9,7 +9,10 @@ import spark.Response;
 import java.util.Collection;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
+/**
+ * 
+ * @author michal.bokr
+ */
 public class LoggingFilter implements Filter {
 
     private static final String TEMPLATE_WITH_BODY =
