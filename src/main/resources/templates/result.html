@@ -1,0 +1,27 @@
+ <#ftl encoding="utf-8">
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">    
+    <title>Comgate úkázka - Notářská komora</title>
+</head>
+<body>
+    <h1>Výsledek platby</h1>
+    <#if status??>
+        <p>status - ${status}</p>
+    <#else>
+        <p>status - neznámý</p>
+    </#if>   
+    
+    <#if tranId??>
+        <p>id transakce - ${tranId}</p>
+    <#else>
+        <p>id transakce - neznámé</p>
+    </#if>    
+    
+    <#if price??>
+        <p>cena - ${price} ${curr}</p>
+    </#if>
+    <a href="index.html">Další platba</a>
+</body>
+</html>

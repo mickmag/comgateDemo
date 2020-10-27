@@ -6,11 +6,15 @@ package cz.styrax.comgate.model;
  */
 public class Transaction {
     private String transId;
-    private String status;
+    private Status status;
     // fee or 'unknown'
     private String fee;
+    
+    public Transaction(String transId) {
+        this.transId = transId;
+    }
 
-    public Transaction(String transId, String status, String fee) {
+    public Transaction(String transId, Status status, String fee) {
         this.transId = transId;
         this.status = status;
         this.fee = fee;
@@ -24,11 +28,11 @@ public class Transaction {
         this.transId = transId;
     }
 
-    public String getStatus() {
+    public Status getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(Status status) {
         this.status = status;
     }
 
@@ -39,6 +43,22 @@ public class Transaction {
     public void setFee(String fee) {
         this.fee = fee;
     }
-
+    
+    
+    public enum Status {
+        PAID("Zaplaceno"),
+        CANCELLED("Stornováno"),
+        AUTHORIZED("Autorizováno");
+        
+        String translation;
+        
+        Status(String translation) {
+            this.translation = translation;
+        }
+        
+        public String getTranslation() {
+            return translation;
+        }
+    }
     
 }

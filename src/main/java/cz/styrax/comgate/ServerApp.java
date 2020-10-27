@@ -3,13 +3,12 @@ package cz.styrax.comgate;
 import cz.styrax.comgate.model.Item;
 import cz.styrax.comgate.model.Order;
 import cz.styrax.comgate.model.Payer;
+import cz.styrax.comgate.model.Transaction;
 import freemarker.cache.ClassTemplateLoader;
 import freemarker.template.Configuration;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.URLDecoder;
-import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
@@ -46,13 +45,13 @@ import spark.template.freemarker.FreeMarkerEngine;
 
 /**
  * Main application to comunicate with Comgate pay wall
+ *
  * @author michal.bokr
  */
 public class ServerApp {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerApp.class);
     private static final String ERROR_HTML_FORMAT = "<div class=\"container\"><h1>Chyba</h1><div>Výpis chyby: {0}</div><a href=\"index.html\">Další platba</a></div>";
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final Map<String, String> conf;
     private final ResponseHandler<String> responseHandler;
@@ -71,11 +70,14 @@ public class ServerApp {
                 throw new ClientProtocolException("Unexpected response status: " + status);
             }
         };
-        // Initialize FreeMarkerEngine
-        Configuration freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_26);        
-        freeMarkerConfiguration.setEncoding(new Locale("cs", "CZ"), "UTF-8");
+        // Initialize FreeMarkerEngine templates
+        Locale csLocale = new Locale("cs", "CZ");
+        Configuration freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_26);
+        freeMarkerConfiguration.setEncoding(csLocale, "UTF-8");
         freeMarkerConfiguration.setTemplateLoader(new ClassTemplateLoader(ServerApp.class, "/templates/"));
         freeMarkerEngine = new FreeMarkerEngine(freeMarkerConfiguration);
+
+        Locale.setDefault(csLocale);
     }
 
     public void initialize() {
@@ -99,27 +101,58 @@ public class ServerApp {
                     return "";
                 }
             } catch (Exception ex) {
-                LOGGER.error("Post entity", ex);
+                LOGGER.error("Error during communication with Comgate: ", ex);
                 errorMsg = ex.getMessage();
             }
             response.type("text/html; charset=UTF-8");
             response.status(500);
             return MessageFormat.format(ERROR_HTML_FORMAT, errorMsg);
         });
-		
 
         post("/status", (request, response) -> {
-            // TODO get data from request body as query params
-            return "status joooo";
+            LOGGER.debug(">>> Status - print params <<<");
+            final Map<String, List<String>> queryParams = splitQuery(request.body());
+            printQueryParams(queryParams);
+
+            String refId = getParamFromQueryMap(queryParams, "refId");
+            if (refId != null) {
+                Order order = orders.get(refId);
+                if (order != null) {
+                    String transId = getParamFromQueryMap(queryParams, "transId");
+                    String s = getParamFromQueryMap(queryParams, "status");
+                    Transaction.Status status = Transaction.Status.valueOf(s.toUpperCase());
+                    String fee = getParamFromQueryMap(queryParams, "fee");
+                    Transaction transaction = order.getTransaction();
+                    transaction.setFee(fee);
+                    transaction.setStatus(status);
+                    if (!isEmptyString(transId)) {
+                        transaction.setTransId(transId);
+                    }
+                }
+            }
+            return "";
         });
 
-        get("/result", (request, response) -> {     
-            // TODO get data from query
+        get("/result", (request, response) -> {
+            Map<String, Object> attributes = new HashMap<>();
+
+            String refId = request.queryParams("refId");
+            if (!isEmptyString(refId)) {
+                Order order = orders.get(refId);
+                if (order != null) {
+                    Transaction tran = order.getTransaction();
+                    if (tran != null) {
+                        attributes.put("status", tran.getStatus() != null ? tran.getStatus().getTranslation() : null);
+                        attributes.put("tranId", tran.getTransId());
+                    }
+                    double price = Double.parseDouble(order.getItem().getPrice()) / 100;
+                    attributes.put("price", MessageFormat.format("{0, number,#.00}", price));
+                    attributes.put("curr", order.getItem().getCurrency());
+                }
+            }
             response.status(200);
             response.type("text/html; charset=UTF-8");
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("data", "hello world");
-            return freeMarkerEngine.render(new ModelAndView(attributes, "test.html"));
+            return freeMarkerEngine.render(new ModelAndView(attributes, "result.html"));
         });
     }
 
@@ -130,8 +163,7 @@ public class ServerApp {
             HttpPost post = new HttpPost("https://payments.comgate.cz/v1.0/create");
             final Order order = createNewOrder();
             orders.put(order.getRefId(), order);
-            
-            
+
             // https://www.comgate.cz/cz/protokol-api
             List<NameValuePair> urlParameters = new ArrayList<>();
             urlParameters.add(new BasicNameValuePair("merchant", conf.get("MERCHANT")));
@@ -161,29 +193,24 @@ public class ServerApp {
             if (responseBody != null) {
                 LOGGER.debug("Comgate response: " + responseBody);
                 LOGGER.debug(">>> Print params <<<");
-                final Map<String, List<String>> splitQuery = splitQuery(responseBody);
-                splitQuery.entrySet().forEach((entry) -> {
-                    String key = entry.getKey();
-                    List<String> value = entry.getValue();
-                    LOGGER.debug(key + " : " + value.get(0));
-                });
-
-                final List<String> redirectList = splitQuery.get("redirect");
-                if (redirectList != null) {
-                    final String redirectParam = redirectList.get(0);
-                    if (redirectParam != null && !redirectParam.isEmpty()) {
-                        redirectUrl = redirectParam;
-                    }
+                final Map<String, List<String>> queryMap = splitQuery(responseBody);
+                printQueryParams(queryMap);
+                String code = getParamFromQueryMap(queryMap, "code");
+                String message = getParamFromQueryMap(queryMap, "message");
+                if (code == null || !code.equals("0")) {
+                    throw new ComgateResponseException(MessageFormat.format("Error in Comgate response: {0} {1}", code, message));
                 }
+                String transId = getParamFromQueryMap(queryMap, "transId");
+                order.setTransaction(new Transaction(transId));
+                redirectUrl = getParamFromQueryMap(queryMap, "redirect");
             }
-//                EntityUtils.consume(entity);
             return redirectUrl;
         } finally {
             httpClient.close();
         }
     }
 
-    public Map<String, List<String>> splitQuery(String query) throws UnsupportedEncodingException {
+    public Map<String, List<String>> splitQuery(String query) {
         if (query == null || query.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -207,23 +234,42 @@ public class ServerApp {
         return new SimpleImmutableEntry<>("", "");
     }
 
-    public static BigInteger getNewRefId() {
-        return new BigInteger(60, RANDOM);
-    }
-
     private void loadConfiguration() {
         Dotenv dotenv = Dotenv.configure().directory("./conf/.env").load();
         conf.put("MERCHANT", dotenv.get("MERCHANT"));
         conf.put("TEST", dotenv.get("TEST"));
         conf.put("SECRET", dotenv.get("SECRET"));
     }
-    
+
     private Order createNewOrder() {
         UUID uuid = UUID.randomUUID();
         String refId = uuid.toString();
         final Payer payer = new Payer("michal.bokr@styrax.cz");
-        final Item item = new Item("15900", "CZK", "custom label");
+        final Item item = new Item("15950", "CZK", "custom label");
         final Order order = new Order(refId, payer, item, "ALL");
-        return order;                
+        return order;
+    }
+
+    private void printQueryParams(Map<String, List<String>> splitQuery) {
+        splitQuery.entrySet().forEach((entry) -> {
+            String key = entry.getKey();
+            List<String> value = entry.getValue();
+            LOGGER.debug(key + " : " + value.get(0));
+        });
+    }
+
+    boolean isEmptyString(String string) {
+        return string == null || string.isEmpty();
+    }
+
+    String getParamFromQueryMap(Map<String, List<String>> queryParams, String keyParam) {
+        String result = null;
+        if (queryParams.get(keyParam) != null) {
+            final String param = queryParams.get(keyParam).get(0);
+            if (!isEmptyString(param)) {
+                result = param;
+            }
+        }
+        return result;
     }
 }
