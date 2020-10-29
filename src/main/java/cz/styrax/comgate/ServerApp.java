@@ -57,8 +57,10 @@ public class ServerApp {
     private final ResponseHandler<String> responseHandler;
     private final Map<String, Order> orders;
     private final FreeMarkerEngine freeMarkerEngine;
+    private String email;
 
     public ServerApp() {
+        this.email = "";
         this.conf = new HashMap<>();
         this.orders = new HashMap<>();
         this.responseHandler = (HttpResponse response) -> {
@@ -81,6 +83,7 @@ public class ServerApp {
     }
 
     public void initialize() {
+        // Load configuration
         loadConfiguration();
 
         // Serve static files from src/main/resources/public
@@ -89,10 +92,11 @@ public class ServerApp {
         // Log all requests and responses
         afterAfter(new LoggingFilter());
 
+        // Obtain email from POST request, make request for prepraing the payment to Comgate and redirect to pay wall
         post("/pay", (request, response) -> {
-//            final String[] queryParamsValues = request.queryParamsValues("method");
-//            final String method = queryParamsValues[0];
-//            LOGGER.debug("/pay - method: " + method);
+            final String[] queryParamsValues = request.queryParamsValues("email");
+            email = queryParamsValues[0];
+            LOGGER.debug("/pay - email: " + email);
             String errorMsg = "Chyba při placení";
             try {
                 String redirect = postToComgate();
@@ -108,7 +112,8 @@ public class ServerApp {
             response.status(500);
             return MessageFormat.format(ERROR_HTML_FORMAT, errorMsg);
         });
-
+        
+        // Obtain status data about transcation from Comgate - happens before calling /result
         post("/status", (request, response) -> {
             LOGGER.debug(">>> Status - print params <<<");
             final Map<String, List<String>> queryParams = splitQuery(request.body());
@@ -132,7 +137,8 @@ public class ServerApp {
             }
             return "";
         });
-
+        
+        // Display result page for client
         get("/result", (request, response) -> {
             Map<String, Object> attributes = new HashMap<>();
 
@@ -156,6 +162,11 @@ public class ServerApp {
         });
     }
 
+    /**
+     * Make preparing request for pay to Comgate and obtain redirect URL from response
+     * @return redirect URL to Comgate pay wall
+     * @throws Exception 
+     */
     public String postToComgate() throws Exception {
         String redirectUrl = null;
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -230,8 +241,10 @@ public class ServerApp {
             );
         } catch (UnsupportedEncodingException e) {
             LOGGER.error("Decoding problem", e);
+            throw new RuntimeException(e);            
         }
-        return new SimpleImmutableEntry<>("", "");
+//        return new SimpleImmutableEntry<>("", "");
+        
     }
 
     private void loadConfiguration() {
@@ -244,8 +257,8 @@ public class ServerApp {
     private Order createNewOrder() {
         UUID uuid = UUID.randomUUID();
         String refId = uuid.toString();
-        final Payer payer = new Payer("michal.bokr@styrax.cz");
-        final Item item = new Item("15950", "CZK", "custom label");
+        final Payer payer = new Payer(email);
+        final Item item = new Item("500000", "CZK", "založení s.r.o. " + email);
         final Order order = new Order(refId, payer, item, "ALL");
         return order;
     }

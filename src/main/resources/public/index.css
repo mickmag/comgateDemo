@@ -5,3 +5,11 @@
 .config-value.unset {
     color:darkred;
 }
+
+body {
+  background-color: #f3f0e9;  
+}
+
+#logo {
+    margin-top: 15px;
+}

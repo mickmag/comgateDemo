@@ -1,27 +1,38 @@
- <#ftl encoding="utf-8">
+<#ftl encoding="utf-8">
 <!DOCTYPE html>
 <html lang="cs">
-<head>
-    <meta charset="utf-8">    
-    <title>Comgate úkázka - Notářská komora</title>
-</head>
-<body>
-    <h1>Výsledek platby</h1>
-    <#if status??>
-        <p>status - ${status}</p>
-    <#else>
-        <p>status - neznámý</p>
-    </#if>   
-    
-    <#if tranId??>
-        <p>id transakce - ${tranId}</p>
-    <#else>
-        <p>id transakce - neznámé</p>
-    </#if>    
-    
-    <#if price??>
-        <p>cena - ${price} ${curr}</p>
-    </#if>
-    <a href="index.html">Další platba</a>
-</body>
+    <head>
+        <meta charset="utf-8">    
+        <title>Comgate úkázka - Notářská komora</title>
+        <link rel="stylesheet" crossorigin="anonymous"
+              href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body>
+        <div class="container">
+            <div id="logo">
+                <img src="logo.png" alt="Notářská komora" width="149" height="97"/>
+            </div>    
+            <h1>Výsledek platby</h1>
+            <#if status??>
+            <p><b>status</b> - ${status}</p>
+            <#else>
+            <p><b>status</b> - neznámý</p>
+            </#if>   
+
+            <#if tranId??>
+            <p><b>id transakce</b> - ${tranId}</p>
+            <#else>
+            <p><b>id transakce</b> - neznámé</p>
+            </#if>    
+
+            <#if price??>
+            <p><b>cena</b> - ${price} ${curr}</p>
+            </#if>
+            <a href="index.html">Další platba</a>
+        </div>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js" />
+        <script crossorigin="anonymous"
+                src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" />
+    </body>
 </html>
