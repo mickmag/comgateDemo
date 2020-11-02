@@ -95,7 +95,7 @@
                             <transformers>
                                 <transformer
                                     implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>cz.styrax.ServerApp</mainClass>
+                                    <mainClass>cz.styrax.comgate.Server</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

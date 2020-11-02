@@ -242,9 +242,7 @@ public class ServerApp {
         } catch (UnsupportedEncodingException e) {
             LOGGER.error("Decoding problem", e);
             throw new RuntimeException(e);            
-        }
-//        return new SimpleImmutableEntry<>("", "");
-        
+        }        
     }
 
     private void loadConfiguration() {
@@ -258,7 +256,7 @@ public class ServerApp {
         UUID uuid = UUID.randomUUID();
         String refId = uuid.toString();
         final Payer payer = new Payer(email);
-        final Item item = new Item("500000", "CZK", "založení s.r.o. " + email);
+        final Item item = new Item("500000", "CZK", "poplatek za zalozeni s.r.o. pro " + email);
         final Order order = new Order(refId, payer, item, "ALL");
         return order;
     }

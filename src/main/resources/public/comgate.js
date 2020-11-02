@@ -1,13 +1,3 @@
-function post() {
-    console.log("post");
-    const urlParams = new URLSearchParams(window.location.search);
-    const method = urlParams.get('method');
-    console.log(method);
-    $.get('/pay', function (response) {
-        console.log(response.headers);
-    });
-}
-
 function validateEmail() {
 //    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     if (/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(form.email.value)) {
