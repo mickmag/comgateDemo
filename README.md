@@ -22,7 +22,7 @@ The application should now be running at [http://localhost:4567/](http://localho
 
 ## Run with ngrok
 
-To get public URL use ngrok. Use the ngrok in your Comgate account to configure retrieve for /status and /result pages.
+To get public URL use ngrok. Use the ngrok URL in your Comgate account to configure retrieve for /status and /result pages.
 
 ```bash
 ngrok http 4567
