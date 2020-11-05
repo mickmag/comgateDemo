@@ -248,16 +248,19 @@ public class ServerApp {
     private void loadConfiguration() {
         Dotenv dotenv = Dotenv.configure().directory("./conf/.env").load();
         conf.put("MERCHANT", dotenv.get("MERCHANT"));
-        conf.put("TEST", dotenv.get("TEST"));
         conf.put("SECRET", dotenv.get("SECRET"));
+        conf.put("TEST", dotenv.get("TEST"));
+        conf.put("PRICE", dotenv.get("PRICE"));
+        conf.put("CURRENCY", dotenv.get("CURRENCY"));
+        conf.put("METHOD", dotenv.get("METHOD"));
     }
 
     private Order createNewOrder() {
         UUID uuid = UUID.randomUUID();
         String refId = uuid.toString();
         final Payer payer = new Payer(email);
-        final Item item = new Item("500000", "CZK", "poplatek za zalozeni s.r.o. pro " + email);
-        final Order order = new Order(refId, payer, item, "ALL");
+        final Item item = new Item(conf.get("PRICE"), conf.get("CURRENCY"), "poplatek za zalozeni s.r.o. pro " + email);
+        final Order order = new Order(refId, payer, item, conf.get("METHOD"));
         return order;
     }
 
